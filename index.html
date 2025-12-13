@@ -4,8 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0f172a" />
-    <title>Shooting Game Player 2</title>
+    <title>Star Defender V2</title>
     
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5770298596723752"
+     crossorigin="anonymous"></script>
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json" />
     
@@ -13,6 +17,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Star Defender">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -25,6 +30,8 @@
         overscroll-behavior: none; /* Prevent pull-to-refresh on mobile */
         touch-action: none; /* Critical for mobile games */
         -webkit-tap-highlight-color: transparent; /* Remove tap highlight on iOS */
+        user-select: none;
+        -webkit-user-select: none;
       }
       /* Custom scrollbar for aesthetics */
       ::-webkit-scrollbar {

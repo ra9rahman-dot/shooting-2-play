@@ -29,6 +29,26 @@ const SKINS = [
   { name: 'NEBULA', hue: 260, color: '#a855f7', price: 5000 },   // New
 ];
 
+// Helper to adjust color brightness for dynamic particles
+const adjustColor = (hex: string, percent: number) => {
+    hex = hex.replace(/^\s*#|\s*$/g, '');
+    if (hex.length === 3) hex = hex.replace(/(.)/g, '$1$1');
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+
+    if (percent > 0) {
+       r += (255 - r) * percent; g += (255 - g) * percent; b += (255 - b) * percent;
+    } else {
+       r += r * percent; g += g * percent; b += b * percent;
+    }
+    const toHex = (n: number) => {
+        const h = Math.round(Math.min(255, Math.max(0, n))).toString(16);
+        return h.length === 1 ? "0" + h : h;
+    };
+    return "#" + toHex(r) + toHex(g) + toHex(b);
+};
+
 type EnemyType = 'drone' | 'hunter' | 'dasher' | 'elite' | 'boss';
 
 interface Entity {
@@ -126,9 +146,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ assets, options, onGameO
 
   const spawnParticles = (x: number, y: number, color: string, count: number, type: 'spark' | 'blood' | 'explosion' | 'thruster' | 'glow') => {
       const state = gameState.current;
-      if (state.particles.length > 50) return; 
+      if (state.particles.length > 150) return; // Allow more particles
 
-      const limit = type === 'explosion' ? 6 : (type === 'blood' ? 3 : 1);
+      const limit = type === 'explosion' ? 8 : (type === 'blood' ? 12 : (type === 'thruster' ? 1 : 2));
       const actualCount = Math.min(count, limit);
 
       for (let i = 0; i < actualCount; i++) {
@@ -140,21 +160,40 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ assets, options, onGameO
           let gravity = 0;
           let friction = 0.92;
           let decay = 0.08;
+          let pColor = color;
 
           if (type === 'blood') {
-              width = Math.random() * 3 + 1; height = width;
+              const sizeVar = Math.random();
+              width = sizeVar * 5 + 2; 
+              height = width; // Square chunks
+              
+              // Directional spread with speed variation
+              const angle = Math.random() * Math.PI * 2;
+              const speed = (Math.random() * 6 + 2) * (1.2 - sizeVar * 0.5); 
+              vx = Math.cos(angle) * speed;
+              vy = Math.sin(angle) * speed;
+              
               gravity = 0.15; 
+              friction = 0.94;
+              life = 0.6 + Math.random() * 0.4;
+              decay = 0.03;
+
+              // Dynamic color brightness variation
+              try {
+                  pColor = adjustColor(color, (Math.random() * 0.6) - 0.3); // +/- 30% brightness
+              } catch (e) { pColor = color; }
+
           } else if (type === 'explosion') {
               width = Math.random() * 4 + 2; height = width;
               life = 0.6;
           } else if (type === 'thruster') {
               vx = (Math.random() - 0.5) * 2; vy = Math.random() * 5 + 2;
               width = 2; height = 2;
-              life = 0.2; color = '#06b6d4'; decay = 0.15;
+              life = 0.2; pColor = '#06b6d4'; decay = 0.15;
           }
 
           state.particles.push({ 
-              id: -1, x, y, width, height, vx, vy, life, color, 
+              id: -1, x, y, width, height, vx, vy, life, color: pColor, 
               active: true, speed: 0, gravity, friction, decay
           });
       }
@@ -394,7 +433,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ assets, options, onGameO
       const currentSkin = SKINS[state.skinIndex];
 
       // --- CLEANUP ---
-      if (state.particles.length > 50) state.particles = state.particles.slice(state.particles.length - 50); 
+      if (state.particles.length > 150) state.particles = state.particles.slice(state.particles.length - 150); 
       if (state.debris.length > 5) state.debris = state.debris.slice(state.debris.length - 5);
 
       // --- LOGIC ---
@@ -569,7 +608,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ assets, options, onGameO
                 if (e.hp && e.hp > 1) e.hp -= 0.2; return;
             }
             const bloodColor = e.bloodColor || '#fff';
-            spawnParticles(b.x, b.y, bloodColor, 2, 'blood'); 
+            // Hit effect: Spawn more blood particles
+            spawnParticles(b.x, b.y, bloodColor, 6, 'blood'); 
+            
             if (e.hp && e.hp > 1) { e.hp -= 1; } else {
                 e.active = false; state.kills++; if (e.enemyType) state.killCounts[e.enemyType]++;
                 let scoreAdd = 10 * state.level;
@@ -579,7 +620,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ assets, options, onGameO
                 }
                 state.score += scoreAdd; state.credits += Math.floor(scoreAdd / 5); setScore(state.score); setCredits(state.credits);
                 state.camera.shake += 2; playExplosion();
+                
+                // Kill effect: Explosion + Blood Burst
                 spawnParticles(e.x + e.width/2, e.y + e.height/2, bloodColor, 6, 'explosion');
+                spawnParticles(e.x + e.width/2, e.y + e.height/2, bloodColor, 12, 'blood');
+                
                 if (state.debris.length < 5) {
                    state.debris.push({ id: -99, x: e.x + e.width/2, y: e.y + e.height/2, width: e.width/2, height: e.height/2, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1.0, rotation: 0, rotationSpeed: 0.1, active: true, speed: 0, enemyType: e.enemyType });
                 }

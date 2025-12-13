@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GameStatus, GameAssets, GameOptions, GraphicStyle } from './types';
 import { generateGameAssets, FALLBACK_PLAYER } from './services/geminiService';
 import { GameCanvas, GameStats } from './components/GameCanvas';
+import { PuzzleGame } from './components/PuzzleGame';
 import { initAudio, setMusicEnabled } from './services/audioService';
-import { Rocket, Loader2, Trophy, RotateCcw, Crosshair, Users, User, Medal, LogOut, Palette, Monitor, Play, Zap, Shield, Settings, Signal, X, Download, Laptop, Smartphone, WifiOff, Target, Clock, BarChart3, ChevronRight, Star, Volume2, VolumeX, Sparkles, ScanLine, Activity, Swords, MonitorPlay, MessageSquare } from 'lucide-react';
+import { Rocket, Loader2, Trophy, RotateCcw, Crosshair, Users, User, Medal, LogOut, Palette, Monitor, Play, Zap, Shield, Settings, Signal, X, Download, Laptop, Smartphone, WifiOff, Target, Clock, BarChart3, ChevronRight, Star, Volume2, VolumeX, Sparkles, ScanLine, Activity, Swords, MonitorPlay, MessageSquare, Brain } from 'lucide-react';
 
 const SUGGESTED_THEMES = [
   "Cyberpunk Neon",
@@ -221,13 +222,14 @@ interface ModeCardProps {
   title: string;
   subtitle: string;
   icon: React.ReactNode;
-  color: 'cyan' | 'purple';
+  color: 'cyan' | 'purple' | 'green';
 }
 
 const ModeCard: React.FC<ModeCardProps> = ({ onClick, title, subtitle, icon, color }) => {
   const colorClasses = {
     cyan: 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-500/30 text-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.3)]',
-    purple: 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/30 text-purple-400 hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]'
+    purple: 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/30 text-purple-400 hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]',
+    green: 'bg-green-950/40 hover:bg-green-900/60 border-green-500/30 text-green-400 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]'
   };
 
   return (
@@ -239,7 +241,7 @@ const ModeCard: React.FC<ModeCardProps> = ({ onClick, title, subtitle, icon, col
        <div className={`mb-4 p-4 rounded-full bg-slate-950/50 border border-white/10 relative z-10 transition-transform group-hover:rotate-12`}>
          {icon}
        </div>
-       <h3 className="text-2xl font-black text-white italic tracking-wider mb-1 relative z-10">{title}</h3>
+       <h3 className="text-xl md:text-2xl font-black text-white italic tracking-wider mb-1 relative z-10 text-center">{title}</h3>
        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors relative z-10">{subtitle}</p>
        
        {/* Decorative Lines */}
@@ -337,6 +339,7 @@ const App: React.FC = () => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      // Optional: Auto-show prompt on first visit if desired, but user interaction is better
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
@@ -352,7 +355,10 @@ const App: React.FC = () => {
   }, []);
 
   const handleInstallApp = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+        alert("To install, tap the Share button in your browser and select 'Add to Home Screen'.");
+        return;
+    }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
@@ -389,6 +395,11 @@ const App: React.FC = () => {
       setError("Initialization failed. Please restart.");
       setStatus(GameStatus.MENU);
     }
+  };
+
+  const handleStartPuzzle = () => {
+      initAudio();
+      setStatus(GameStatus.PUZZLE);
   };
 
   const handleLogin = () => {
@@ -473,11 +484,11 @@ const App: React.FC = () => {
              </div>
              
              <div className="flex items-center gap-3">
-                {deferredPrompt && (
-                  <button onClick={handleInstallApp} className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] transition-all animate-pulse">
-                    <Download className="w-4 h-4" /> <span className="hidden md:inline">INSTALL APP</span>
-                  </button>
-                )}
+                {/* Always Show Install Button if not installed */}
+                <button onClick={handleInstallApp} className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] transition-all animate-pulse border border-cyan-400/30">
+                    <Download className="w-4 h-4" /> <span className="hidden md:inline">INSTALL GAME</span>
+                </button>
+
                 {!user ? (
                    <button onClick={handleLogin} className="text-xs font-bold text-cyan-400 hover:text-white transition-colors">LOGIN</button>
                 ) : (
@@ -490,7 +501,7 @@ const App: React.FC = () => {
           </div>
 
           {/* Center Content */}
-          <div className="flex-1 flex flex-col justify-center items-center text-center w-full max-w-4xl mx-auto">
+          <div className="flex-1 flex flex-col justify-center items-center text-center w-full max-w-5xl mx-auto">
             
             {/* World's Best Game Badge */}
             <div className="mb-8 animate-in slide-in-from-top-10 duration-1000">
@@ -530,12 +541,13 @@ const App: React.FC = () => {
             )}
 
             {/* Mode Selection Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl px-4 animate-in slide-in-from-bottom-10 duration-700 delay-100">
-                <ModeCard onClick={() => handleStartGame(1)} title="SOLO MISSION" subtitle="Deploy Fighter" icon={<Target className="w-8 h-8" />} color="cyan" />
-                <ModeCard onClick={() => handleStartGame(2)} title="CO-OP SQUAD" subtitle="Local Multiplayer" icon={<Users className="w-8 h-8" />} color="purple" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-4xl px-4 animate-in slide-in-from-bottom-10 duration-700 delay-100 pb-10">
+                <ModeCard onClick={() => handleStartGame(1)} title="SOLO" subtitle="Fighter" icon={<Target className="w-8 h-8" />} color="cyan" />
+                <ModeCard onClick={() => handleStartGame(2)} title="CO-OP" subtitle="Squad" icon={<Users className="w-8 h-8" />} color="purple" />
+                <ModeCard onClick={handleStartPuzzle} title="PUZZLE" subtitle="Earn Credits" icon={<Brain className="w-8 h-8" />} color="green" />
             </div>
             
-            <p className="mt-12 text-[10px] text-slate-600 font-mono uppercase tracking-[0.2em] flex items-center justify-center gap-4">
+            <p className="text-[10px] text-slate-600 font-mono uppercase tracking-[0.2em] flex items-center justify-center gap-4">
                SECURE CONNECTION ESTABLISHED • GALAXY NET V9.0
             </p>
           </div>
@@ -643,6 +655,13 @@ const App: React.FC = () => {
           </div>
           <p className="mt-4 text-[10px] text-slate-500 font-mono tracking-widest">GALAXY OS v3.1</p>
         </div>
+      )}
+
+      {/* =========================================
+          PUZZLE GAME
+         ========================================= */}
+      {status === GameStatus.PUZZLE && (
+         <PuzzleGame onExit={() => setStatus(GameStatus.MENU)} />
       )}
 
       {/* =========================================

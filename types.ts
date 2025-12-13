@@ -2,6 +2,7 @@ export enum GameStatus {
   MENU = 'MENU',
   LOADING = 'LOADING',
   PLAYING = 'PLAYING',
+  PUZZLE = 'PUZZLE',
   GAME_OVER = 'GAME_OVER',
 }
 
